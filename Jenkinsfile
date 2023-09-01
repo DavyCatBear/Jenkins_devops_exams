@@ -60,6 +60,7 @@ pipeline {
                     rm -Rf .kube
                     mkdir .kube
                     cat $KUBECONFIG > .kube/config
+		    '''	
                 }
             }
         }
