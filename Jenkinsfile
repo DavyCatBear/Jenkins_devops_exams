@@ -71,7 +71,7 @@ pipeline {
 
 def deployToK8s(env) {
     environment {
-        KUBECONFIG = credentials("config")
+        KUBECONFIG = credentials("config.txt") // Modifié pour correspondre au nom du secret que vous avez créé
     }
     sh '''
     rm -Rf .kube
