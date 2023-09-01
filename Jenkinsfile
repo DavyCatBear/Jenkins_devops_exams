@@ -1,6 +1,6 @@
 pipeline {
     environment {
-        DOCKER_ID = 'davydatascientest' 
+        DOCKER_ID = 'davydatascientest'
         DOCKER_IMAGE_CAST = 'datascientestapi-cast'
         DOCKER_IMAGE_MOVIE = 'datascientestapi-movie'
         DOCKER_TAG = "v.${BUILD_ID}.0"
@@ -60,9 +60,12 @@ pipeline {
                     rm -Rf .kube
                     mkdir .kube
                     cat $KUBECONFIG > .kube/config
-		    '''	
+                    helm upgrade --install cast-service ./cast-service --set image.tag=$DOCKER_TAG --namespace dev
+                    helm upgrade --install movie-service ./movie-service --set image.tag=$DOCKER_TAG --namespace dev
+                    '''
                 }
             }
         }
     }
 }
+
