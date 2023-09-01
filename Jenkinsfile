@@ -1,85 +1,67 @@
 pipeline {
     environment {
-        DOCKER_ID = "davydatascientest"
+        DOCKER_ID = 'davydatascientest' 
+        DOCKER_IMAGE_CAST = 'datascientestapi-cast'
+        DOCKER_IMAGE_MOVIE = 'datascientestapi-movie'
+        DOCKER_TAG = "v.${BUILD_ID}.0"
     }
     agent any
 
     stages {
-        stage('Build & Test') {
+        stage('Build Docker Images') {
             parallel {
-                stage('Build & Test Cast Service') {
+                stage('Build Cast Service Image') {
                     steps {
                         dir('cast-service') {
-                            sh '''
-                            docker build -t $DOCKER_ID/datascientestapi-cast:v1 .
-                            docker run -d -p 8080:80 --name cast-service $DOCKER_ID/datascientestapi-cast:v1
-                            sleep 10
-                            curl localhost:8080
-                            '''
+                            script {
+                                sh '''
+                                docker build -t $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG .
+                                '''
+                            }
                         }
                     }
                 }
-                stage('Build & Test Movie Service') {
+                stage('Build Movie Service Image') {
                     steps {
                         dir('movie-service') {
-                            sh '''
-                            docker build -t $DOCKER_ID/datascientestapi-movie:v1 .
-                            docker run -d -p 8081:80 --name movie-service $DOCKER_ID/datascientestapi-movie:v1
-                            sleep 10
-                            curl localhost:8081
-                            '''
+                            script {
+                                sh '''
+                                docker build -t $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG .
+                                '''
+                            }
                         }
                     }
                 }
             }
         }
 
-        stage('Docker Push') {
+        stage('Push Docker Images') {
             environment {
-                DOCKER_PASS = credentials("DOCKER_HUB_PASS")
+                DOCKER_PASS = credentials('DOCKER_HUB_PASS')
             }
             steps {
-                sh '''
-                docker login -u $DOCKER_ID -p $DOCKER_PASS
-                docker push $DOCKER_ID/datascientestapi-cast:v1
-                docker push $DOCKER_ID/datascientestapi-movie:v1
-                '''
-            }
-        }
-
-        stage('Deploy to Environments') {
-            steps {
-                deployToK8s('dev')
-                deployToK8s('qa')
-                deployToK8s('staging')
-            }
-        }
-
-        stage('Deploy to Prod') {
-            when {
-                branch 'master'
-            }
-            steps {
-                timeout(time: 15, unit: "MINUTES") {
-                    input message: 'Do you want to deploy in production?', ok: 'Yes'
+                script {
+                    sh '''
+                    docker login -u $DOCKER_ID -p $DOCKER_PASS
+                    docker push $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG
+                    docker push $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG
+                    '''
                 }
-                deployToK8s('prod')
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            environment {
+                KUBECONFIG = credentials('config')
+            }
+            steps {
+                script {
+                    sh '''
+                    rm -Rf .kube
+                    mkdir .kube
+                    cat $KUBECONFIG > .kube/config
+                }
             }
         }
     }
 }
-
-def deployToK8s(env) {
-    environment {
-        KUBECONFIG = credentials("config.txt") // Modifié pour correspondre au nom du secret que vous avez créé
-    }
-    sh '''
-    rm -Rf .kube
-    mkdir .kube
-    cat $KUBECONFIG > .kube/config
-    cp fastapi/values.yaml values.yml
-    sed -i "s+tag.*+tag: v1+g" values.yml
-    helm upgrade --install app fastapi --values=values.yml --namespace $env
-    '''
-}
-
