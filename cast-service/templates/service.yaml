@@ -1,15 +1,18 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "cast-service.fullname" . }}
+  name: {{ .Values.fullnameOverride | default (include "cast-service.fullname" .) }}
   labels:
-    {{- include "cast-service.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "cast-service.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: http
+      targetPort: 8000
       protocol: TCP
       name: http
   selector:
-    {{- include "cast-service.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "cast-service.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+

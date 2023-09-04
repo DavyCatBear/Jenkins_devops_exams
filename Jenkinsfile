@@ -14,9 +14,14 @@ pipeline {
                     steps {
                         dir('cast-service') {
                             script {
-                                sh '''
-                                docker build -t $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG .
-                                '''
+                                try {
+                                    sh '''
+                                    docker build -t $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG .
+                                    '''
+                                } catch (Exception e) {
+                                    echo "Erreur lors de la construction de l'image Cast Service"
+                                    throw e
+                                }
                             }
                         }
                     }
@@ -25,9 +30,14 @@ pipeline {
                     steps {
                         dir('movie-service') {
                             script {
-                                sh '''
-                                docker build -t $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG .
-                                '''
+                                try {
+                                    sh '''
+                                    docker build -t $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG .
+                                    '''
+                                } catch (Exception e) {
+                                    echo "Erreur lors de la construction de l'image Movie Service"
+                                    throw e
+                                }
                             }
                         }
                     }
@@ -41,31 +51,105 @@ pipeline {
             }
             steps {
                 script {
-                    sh '''
-                    docker login -u $DOCKER_ID -p $DOCKER_PASS
-                    docker push $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG
-                    docker push $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG
-                    '''
+                    try {
+                        sh '''
+                        docker login -u $DOCKER_ID -p $DOCKER_PASS
+                        docker push $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG
+                        docker push $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG
+                        '''
+                    } catch (Exception e) {
+                        echo "Erreur lors de la poussée des images sur Docker Hub"
+                        throw e
+                    } finally {
+                        sh '''
+                        docker rmi $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG
+                        docker rmi $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG
+                        '''
+                    }
                 }
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Deploy to Dev') {
+            when {
+                branch 'develop'
+            }
             environment {
                 KUBECONFIG = credentials('config')
+                Environment = 'dev'
             }
             steps {
                 script {
-                    sh '''
-                    rm -Rf .kube
-                    mkdir .kube
-                    cat $KUBECONFIG > .kube/config
-                    helm upgrade --install cast-service ./cast-service --set image.tag=$DOCKER_TAG --namespace dev
-                    helm upgrade --install movie-service ./movie-service --set image.tag=$DOCKER_TAG --namespace dev
-                    '''
+                    deployToKubernetes()
+                }
+            }
+        }
+
+        stage('Deploy to QA') {
+            when {
+                branch 'qa'
+            }
+            environment {
+                KUBECONFIG = credentials('config')
+                Environment = 'qa'
+            }
+            steps {
+                script {
+                    deployToKubernetes()
+                }
+            }
+        }
+
+        stage('Deploy to Staging') {
+            when {
+                branch 'staging'
+            }
+            environment {
+                KUBECONFIG = credentials('config')
+                Environment = 'staging'
+            }
+            steps {
+                script {
+                    deployToKubernetes()
+                }
+            }
+        }
+
+        stage('Confirm Deploy to Prod') {
+            when {
+                branch 'master'
+            }
+            steps {
+                script {
+                    input "Confirmer le déploiement en production ?"
+                }
+            }
+        }
+
+        stage('Deploy to Prod') {
+            when {
+                branch 'master'
+            }
+            environment {
+                KUBECONFIG = credentials('config')
+                Environment = 'prod'
+            }
+            steps {
+                script {
+                    deployToKubernetes()
                 }
             }
         }
     }
+}
+
+def deployToKubernetes() {
+    sh '''
+        rm -Rf .kube
+        mkdir .kube
+        cat $KUBECONFIG > .kube/config
+        helm upgrade --install cast-service ./cast-service --set image.tag=$DOCKER_TAG --namespace $Environment
+        helm upgrade --install movie-service ./movie-service --set image.tag=$DOCKER_TAG --namespace $Environment
+    '''
 }
 

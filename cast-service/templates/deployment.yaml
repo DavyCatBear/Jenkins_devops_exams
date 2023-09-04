@@ -1,61 +1,40 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "cast-service.fullname" . }}
+  name: {{ .Values.fullnameOverride | default (include "cast-service.fullname" .) }}
   labels:
-    {{- include "cast-service.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "cast-service.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
-      {{- include "cast-service.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/name: {{ include "cast-service.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       labels:
-        {{- include "cast-service.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/name: {{ include "cast-service.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      serviceAccountName: {{ include "cast-service.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
+              containerPort: 8000
+          env:
+            - name: DATABASE_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "cast-service.fullname" . }}-config
+                  key: DATABASE_URI
+            - name: CAST_SERVICE_HOST_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "cast-service.fullname" . }}-config
+                  key: CAST_SERVICE_HOST_URL
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+{{ toYaml .Values.resources | indent 12 }}
+
