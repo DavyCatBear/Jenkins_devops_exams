@@ -15,8 +15,8 @@ nameOverride: ""
 fullnameOverride: ""
 
 castDb:
-  user: cast_db_username
-  password: cast_db_password
+  user: cm9vdA==
+  password: ZGF0YXNjaWVudGVzdA==
   name: cast_db_dev
 
 serviceAccount:

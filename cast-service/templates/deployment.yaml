@@ -27,12 +27,12 @@ spec:
           env:
             - name: DATABASE_URI
               valueFrom:
-                configMapKeyRef:
+                secretKeyRef:
                   name: {{ include "cast-service.fullname" . }}-config
                   key: DATABASE_URI
             - name: CAST_SERVICE_HOST_URL
               valueFrom:
-                configMapKeyRef:
+                secretKeyRef:
                   name: {{ include "cast-service.fullname" . }}-config
                   key: CAST_SERVICE_HOST_URL
           resources:
