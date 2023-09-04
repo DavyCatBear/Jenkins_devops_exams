@@ -23,22 +23,14 @@ pipeline {
                 stage('Build Cast Service Image') {
                     steps {
                         dir('cast-service') {
-                            script {
-                                sh '''
-                                    docker build -t $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG .
-                                '''
-                            }
+                            sh 'docker build -t $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG .'
                         }
                     }
                 }
                 stage('Build Movie Service Image') {
                     steps {
                         dir('movie-service') {
-                            script {
-                                sh '''
-                                    docker build -t $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG .
-                                '''
-                            }
+                            sh 'docker build -t $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG .'
                         }
                     }
                 }
@@ -50,20 +42,18 @@ pipeline {
                 DOCKER_PASS = credentials('DOCKER_HUB_PASS')
             }
             steps {
-                script {
+                sh '''
+                    docker login -u $DOCKER_ID -p $DOCKER_PASS
+                    docker push $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG
+                    docker push $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG
+                '''
+            }
+            post {
+                always {
                     sh '''
-                        docker login -u $DOCKER_ID -p $DOCKER_PASS
-                        docker push $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG
-                        docker push $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG
+                        docker rmi $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG
+                        docker rmi $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG
                     '''
-                }
-                post {
-                    always {
-                        sh '''
-                            docker rmi $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG
-                            docker rmi $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG
-                        '''
-                    }
                 }
             }
         }
