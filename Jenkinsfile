@@ -59,9 +59,9 @@ pipeline {
         }
 
         stage('Deploy to Dev') {
-            when {
-                branch 'develop'
-            }
+            //when {
+              //  branch 'develop'
+            //}
             environment {
                 KUBECONFIG = credentials('config')
                 DEPLOY_ENV = 'dev'
@@ -75,9 +75,9 @@ pipeline {
         }
 
         stage('Deploy to QA') {
-            when {
-                branch 'qa'
-            }
+           // when {
+             //   branch 'qa'
+           // }
             environment {
                 KUBECONFIG = credentials('config')
                 DEPLOY_ENV = 'qa'
@@ -91,9 +91,9 @@ pipeline {
         }
 
         stage('Deploy to Staging') {
-            when {
-                branch 'staging'
-            }
+           // when {
+             //   branch 'staging'
+           // }
             environment {
                 KUBECONFIG = credentials('config')
                 DEPLOY_ENV = 'staging'
@@ -106,25 +106,19 @@ pipeline {
             }
         }
 
-	stage('Print Branch') {
-   	    steps {
-        echo "Current branch: ${env.BRANCH_NAME}"
-             }
-         }
-
         stage('Confirm Deploy to Prod') {
-            when {
-                branch 'master'
-            }
+         //   when {
+           //     branch 'master'
+           // }
             steps {
                 input "Confirmer le déploiement en production ?"
             }
         }
 
         stage('Deploy to Prod') {
-            when {
-                branch 'master'
-            }
+           // when {
+             //   branch 'master'
+            //}
             environment {
                 KUBECONFIG = credentials('config')
                 DEPLOY_ENV = 'prod'
