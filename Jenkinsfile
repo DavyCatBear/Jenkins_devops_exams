@@ -1,13 +1,3 @@
-def createKubernetesSecret() {
-    sh '''
-        kubectl create secret generic movie-db-credentials \
-        --from-literal=POSTGRES_USER=root \
-        --from-literal=POSTGRES_PASSWORD=datascientest \
-        --namespace=$DEPLOY_ENV \
-        --dry-run=client -o yaml | kubectl apply -f -
-    '''
-}
-
 pipeline {
     environment {
         DOCKER_ID = 'davydatascientest'
@@ -68,56 +58,53 @@ pipeline {
             }
             steps {
                 script {
-                    createKubernetesSecret()
                     deployToKubernetes()
                 }
             }
         }
 
         stage('Deploy to QA') {
-           // when {
-             //   branch 'qa'
-           // }
+            //when {
+              //  branch 'qa'
+            //}
             environment {
                 KUBECONFIG = credentials('config')
                 DEPLOY_ENV = 'qa'
             }
             steps {
                 script {
-                    createKubernetesSecret()
                     deployToKubernetes()
                 }
             }
         }
 
         stage('Deploy to Staging') {
-           // when {
-             //   branch 'staging'
-           // }
+            //when {
+              //  branch 'staging'
+            //}
             environment {
                 KUBECONFIG = credentials('config')
                 DEPLOY_ENV = 'staging'
             }
             steps {
                 script {
-                    createKubernetesSecret()
                     deployToKubernetes()
                 }
             }
         }
 
         stage('Confirm Deploy to Prod') {
-         //   when {
-           //     branch 'master'
-           // }
+            //when {
+              //  branch 'master'
+            //}
             steps {
                 input "Confirmer le déploiement en production ?"
             }
         }
 
         stage('Deploy to Prod') {
-           // when {
-             //   branch 'master'
+            //when {
+              //  branch 'master'
             //}
             environment {
                 KUBECONFIG = credentials('config')
@@ -125,7 +112,6 @@ pipeline {
             }
             steps {
                 script {
-                    createKubernetesSecret()
                     deployToKubernetes()
                 }
             }

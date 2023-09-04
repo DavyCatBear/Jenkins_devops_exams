@@ -22,6 +22,8 @@ movie_db:
     pullPolicy: IfNotPresent
   env:
     POSTGRES_DB: movie_db_dev
+    POSTGRES_USER: root
+    POSTGRES_PASSWORD: datascientest
   storage:
     size: 1Gi
 
