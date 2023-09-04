@@ -60,3 +60,30 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/* Définir une fonction pour obtenir l'URI de la base de données en fonction de l'environnement */}}
+{{- define "cast-service.databaseUri" -}}
+{{- if eq .Values.environment "dev" -}}
+{{- .Values.environments.dev.database_uri | b64enc }}
+{{- else if eq .Values.environment "qa" -}}
+{{- .Values.environments.qa.database_uri | b64enc }}
+{{- else if eq .Values.environment "staging" -}}
+{{- .Values.environments.staging.database_uri | b64enc }}
+{{- else if eq .Values.environment "prod" -}}
+{{- .Values.environments.prod.database_uri | b64enc }}
+{{- end -}}
+{{- end -}}
+
+{{/* Définir une fonction pour obtenir l'URL du service hôte en fonction de l'environnement */}}
+{{- define "cast-service.serviceHostUrl" -}}
+{{- if eq .Values.environment "dev" -}}
+{{- .Values.environments.dev.service_host_url | b64enc }}
+{{- else if eq .Values.environment "qa" -}}
+{{- .Values.environments.qa.service_host_url | b64enc }}
+{{- else if eq .Values.environment "staging" -}}
+{{- .Values.environments.staging.service_host_url | b64enc }}
+{{- else if eq .Values.environment "prod" -}}
+{{- .Values.environments.prod.service_host_url | b64enc }}
+{{- end -}}
+{{- end -}}
+
