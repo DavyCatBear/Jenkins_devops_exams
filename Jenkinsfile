@@ -106,6 +106,12 @@ pipeline {
             }
         }
 
+	stage('Print Branch') {
+   	    steps {
+        echo "Current branch: ${env.BRANCH_NAME}"
+             }
+         }
+
         stage('Confirm Deploy to Prod') {
             when {
                 branch 'master'
