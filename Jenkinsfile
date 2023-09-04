@@ -76,7 +76,7 @@ pipeline {
             }
             environment {
                 KUBECONFIG = credentials('config')
-                Environment = 'dev'
+                DEPLOY_ENV = 'dev'
             }
             steps {
                 script {
@@ -91,7 +91,7 @@ pipeline {
             }
             environment {
                 KUBECONFIG = credentials('config')
-                Environment = 'qa'
+                DEPLOY_ENV = 'qa'
             }
             steps {
                 script {
@@ -106,7 +106,7 @@ pipeline {
             }
             environment {
                 KUBECONFIG = credentials('config')
-                Environment = 'staging'
+                DEPLOY_ENV = 'staging'
             }
             steps {
                 script {
@@ -132,7 +132,7 @@ pipeline {
             }
             environment {
                 KUBECONFIG = credentials('config')
-                Environment = 'prod'
+                DEPLOY_ENV = 'prod'
             }
             steps {
                 script {
@@ -148,8 +148,8 @@ def deployToKubernetes() {
         rm -Rf .kube
         mkdir .kube
         cat $KUBECONFIG > .kube/config
-        helm upgrade --install cast-service ./cast-service --set image.tag=$DOCKER_TAG --namespace $Environment
-        helm upgrade --install movie-service ./movie-service --set image.tag=$DOCKER_TAG --namespace $Environment
+        helm upgrade --install cast-service ./cast-service --set image.tag=$DOCKER_TAG --namespace $DEPLOY_ENV
+        helm upgrade --install movie-service ./movie-service --set image.tag=$DOCKER_TAG --namespace $DEPLOY_ENV
     '''
 }
 
