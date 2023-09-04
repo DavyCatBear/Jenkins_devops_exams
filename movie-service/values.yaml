@@ -14,6 +14,20 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+movie_db:
+  secretName: movie-db-credentials
+  image:
+    repository: postgres
+    tag: 12.1-alpine
+    pullPolicy: IfNotPresent
+  env:
+    POSTGRES_DB: movie_db_dev
+  storage:
+    size: 1Gi
+
+movie_service:
+  port: 8000
+
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
@@ -80,3 +94,4 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+

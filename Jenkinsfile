@@ -1,3 +1,13 @@
+def createKubernetesSecret() {
+    sh '''
+        kubectl create secret generic movie-db-credentials \
+        --from-literal=POSTGRES_USER=root \
+        --from-literal=POSTGRES_PASSWORD=datascientest \
+        --namespace=$DEPLOY_ENV \
+        --dry-run=client -o yaml | kubectl apply -f -
+    '''
+}
+
 pipeline {
     environment {
         DOCKER_ID = 'davydatascientest'
@@ -14,14 +24,9 @@ pipeline {
                     steps {
                         dir('cast-service') {
                             script {
-                                try {
-                                    sh '''
+                                sh '''
                                     docker build -t $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG .
-                                    '''
-                                } catch (Exception e) {
-                                    echo "Erreur lors de la construction de l'image Cast Service"
-                                    throw e
-                                }
+                                '''
                             }
                         }
                     }
@@ -30,14 +35,9 @@ pipeline {
                     steps {
                         dir('movie-service') {
                             script {
-                                try {
-                                    sh '''
+                                sh '''
                                     docker build -t $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG .
-                                    '''
-                                } catch (Exception e) {
-                                    echo "Erreur lors de la construction de l'image Movie Service"
-                                    throw e
-                                }
+                                '''
                             }
                         }
                     }
@@ -51,19 +51,17 @@ pipeline {
             }
             steps {
                 script {
-                    try {
-                        sh '''
+                    sh '''
                         docker login -u $DOCKER_ID -p $DOCKER_PASS
                         docker push $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG
                         docker push $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG
-                        '''
-                    } catch (Exception e) {
-                        echo "Erreur lors de la poussée des images sur Docker Hub"
-                        throw e
-                    } finally {
+                    '''
+                }
+                post {
+                    always {
                         sh '''
-                        docker rmi $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG
-                        docker rmi $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG
+                            docker rmi $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG
+                            docker rmi $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG
                         '''
                     }
                 }
@@ -80,6 +78,7 @@ pipeline {
             }
             steps {
                 script {
+                    createKubernetesSecret()
                     deployToKubernetes()
                 }
             }
@@ -95,6 +94,7 @@ pipeline {
             }
             steps {
                 script {
+                    createKubernetesSecret()
                     deployToKubernetes()
                 }
             }
@@ -110,6 +110,7 @@ pipeline {
             }
             steps {
                 script {
+                    createKubernetesSecret()
                     deployToKubernetes()
                 }
             }
@@ -120,9 +121,7 @@ pipeline {
                 branch 'master'
             }
             steps {
-                script {
-                    input "Confirmer le déploiement en production ?"
-                }
+                input "Confirmer le déploiement en production ?"
             }
         }
 
@@ -136,6 +135,7 @@ pipeline {
             }
             steps {
                 script {
+                    createKubernetesSecret()
                     deployToKubernetes()
                 }
             }
@@ -149,7 +149,7 @@ def deployToKubernetes() {
         mkdir .kube
         cat $KUBECONFIG > .kube/config
         helm upgrade --install cast-service ./cast-service --set image.tag=$DOCKER_TAG --namespace $DEPLOY_ENV
-        helm upgrade --install movie-service ./movie-service --set image.tag=$DOCKER_TAG --namespace $DEPLOY_ENV
+        helm upgrade --install movie-service ./movie-service --set movie_service.image.tag=$DOCKER_TAG,movie_db.image.tag=12.1-alpine --namespace $DEPLOY_ENV
     '''
 }
 
